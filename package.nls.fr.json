@@ -1,6 +1,6 @@
 {
   "displayName": "GemCommit",
-  "description": "Générateur de *Commits Conventionnels* avec IA en utilisant Google Gemini.",
+  "description": "Générateur de Commits Conventionnels avec IA en utilisant Google Gemini.",
   "command.suggestCommitMessage.title": "GemCommit: Générer un message de commit",
   "command.detailedCommitMessage.title": "GemCommit: Générer un message de commit détaillé",
   "command.showCommitHistory.title": "GemCommit: Afficher l’historique des commits",

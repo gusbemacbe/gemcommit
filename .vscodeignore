@@ -1,11 +1,27 @@
-.vscode/**
-.vscode-test/**
-src/**
+# .vscodeignore
+
+# Ignoring the build output and node_modules
+dist/extension.js.map
+node_modules/
+out/extension.js.map
+
+# Ignoring the source code and config files
+.eslintrc.json
+.github/
+.vscode/
+esbuild.mjs
+pnpm-lock.yaml
+src/
+tsconfig.json
+yarn.lock
+
+# Ignoring the common git files
+.git/
 .gitignore
-.yarnrc
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/eslint.config.mjs
-**/*.map
-**/*.ts
-**/.vscode-test.*
+.gitattributes
+
+# Ignoring the packaged extension file
+*.vsix
+
+# Others
+compare-*
