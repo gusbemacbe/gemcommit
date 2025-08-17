@@ -218,7 +218,7 @@ export function activate(context: vscode.ExtensionContext): void {
 /**
  * Gets additional project context
  */
-async function getProjectContext(): Promise<string> {
+export async function getProjectContext(): Promise<string> {
   try {
     // Get the package.json file if it exists
     const rootPath = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
@@ -263,7 +263,7 @@ async function getProjectContext(): Promise<string> {
 /**
  * Generates a commit message using Gemini AI with additional context
  */
-async function generateCommitMessage(
+export async function generateCommitMessage(
   genAI: GoogleGenerativeAI,
   stagedDiff: string,
   projectContext: string
@@ -313,7 +313,7 @@ async function generateCommitMessage(
 /**
  * Generates a detailed commit with title, body, and breaking changes
  */
-async function generateDetailedCommit(
+export async function generateDetailedCommit(
   genAI: GoogleGenerativeAI,
   stagedDiff: string,
   projectContext: string
@@ -401,7 +401,7 @@ async function generateDetailedCommit(
 /**
  * Displays an editor to modify the detailed commit
  */
-async function showCommitEditor(
+export async function showCommitEditor(
   commitConfig: CommitConfiguration
 ): Promise<string | undefined> {
   try {
@@ -622,7 +622,7 @@ async function showCommitEditor(
  * Saves a generated commit to the history
  */
 
-function saveToCommitHistory(
+export function saveToCommitHistory(
   commitMessage: string,
   context: vscode.ExtensionContext
 ): void {
@@ -640,7 +640,7 @@ function saveToCommitHistory(
 /**
  * Displays the history of generated commits
  */
-async function showCommitHistory(
+export async function showCommitHistory(
   context: vscode.ExtensionContext
 ): Promise<void> {
   const history = context.globalState.get<string[]>("commitHistory", []);
