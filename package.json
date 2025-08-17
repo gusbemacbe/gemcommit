@@ -2,7 +2,7 @@
   "name": "gemcommit",
   "displayName": "GemCommit",
   "description": "AI-powered Conventional Commit Generator using Google Gemini.",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "author": "Freilyn Bernabé <freilyn@bernabe.dev>",
   "publisher": "bernabe",
   "repository": {
@@ -52,12 +52,13 @@
         "gemcommit.apiKey": {
           "type": "string",
           "default": "",
-          "description": "API key for Google Gemini AI"
+          "description": "API key for Google Gemini AI.",
+          "deprecationMessage": "Storing the API key in settings is deprecated. Please use the GEMINI_API_KEY environment variable in your `~/.env` file instead for better security."
         },
         "gemcommit.model": {
           "type": "string",
-          "default": "gemini-2.0-flash",
-          "description": "The AI model to use for generating commit messages. Example: gemini-2.0-flash"
+          "default": "gemini-2.5-flash",
+          "description": "The AI model to use for generating commit messages. Example: gemini-2.5-flash"
         },
         "gemcommit.customPrompt": {
           "type": "string",
@@ -142,16 +143,19 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/sinon": "^17.0.4",
     "@types/vscode": "^1.60.0",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
     "@typescript-eslint/parser": "^8.22.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
     "eslint": "^9.19.0",
+    "sinon": "^17.0.1",
     "typescript": "^5.7.3"
   },
   "packageManager": "pnpm@10.4.1",
   "dependencies": {
-    "@google/generative-ai": "^0.22.0"
+    "@google/generative-ai": "^0.22.0",
+    "dotenv": "^16.3.1"
   }
 }

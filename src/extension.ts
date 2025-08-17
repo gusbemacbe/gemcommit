@@ -2,6 +2,8 @@ import { Content, GoogleGenerativeAI } from "@google/generative-ai";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
+import * as dotenv from "dotenv";
+import * as os from "os";
 
 // Interface for storing configurations
 interface CommitConfiguration {
@@ -10,6 +12,34 @@ interface CommitConfiguration {
   description: string;
   body?: string;
   breakingChanges?: boolean;
+}
+
+/**
+ * Retrieves the API key, prioritizing the environment file over deprecated settings.
+ * @returns The API key, or null if not found.
+ */
+export function getApiKey(): string | null {
+  // 1. Checking the environment file first
+  const envPath = path.join(os.homedir(), ".env");
+  if (fs.existsSync(envPath)) {
+    const envConfig = dotenv.parse(fs.readFileSync(envPath));
+    if (envConfig.GEMINI_API_KEY) {
+      return envConfig.GEMINI_API_KEY;
+    }
+  }
+
+  // 2. Checking the deprecated setting for the backward compatibility
+  const config = vscode.workspace.getConfiguration("gemcommit");
+  const apiKeyFromSettings = config.get<string>("apiKey");
+
+  if (apiKeyFromSettings && apiKeyFromSettings.trim() !== "") {
+    vscode.window.showWarningMessage(
+      "The 'gemcommit.apiKey' setting is deprecated. Please move your API key to a “GEMINI_API_KEY” variable in your “~/.env” file for better security."
+    );
+    return apiKeyFromSettings;
+  }
+
+  return null;
 }
 
 /**
@@ -22,22 +52,12 @@ export function activate(context: vscode.ExtensionContext): void {
     "gemcommit.suggestCommitMessage",
     async () => {
       try {
-        const config = vscode.workspace.getConfiguration("gemcommit");
-        const apiKey = config.get<string>("apiKey");
+        const apiKey = getApiKey();
 
-        if (!apiKey || apiKey.trim() === "") {
-          // Offer to open the settings
-          const openSettings = "Open Settings";
-          const result = await vscode.window.showErrorMessage(
-            "GemCommit: Please configure your Google Gemini API key in settings.",
-            openSettings
+        if (!apiKey) {
+          vscode.window.showErrorMessage(
+            "GemCommit: Google Gemini API key not found. Please add 'GEMINI_API_KEY=YOUR_API_KEY' to your ~/.env file."
           );
-          if (result === openSettings) {
-            vscode.commands.executeCommand(
-              "workbench.action.openSettings",
-              "gemcommit.apiKey"
-            );
-          }
           return;
         }
 
@@ -75,7 +95,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
             // Add additional project context
             const projectContext = await getProjectContext();
-
+            const config = vscode.workspace.getConfiguration("gemcommit");
             // Generate message with more context
             const commitMessage = await generateCommitMessage(
               genAI,
@@ -132,12 +152,11 @@ export function activate(context: vscode.ExtensionContext): void {
       "gemcommit.detailedCommitMessage",
       async () => {
         try {
-          const config = vscode.workspace.getConfiguration("gemcommit");
-          const apiKey = config.get<string>("apiKey");
+          const apiKey = getApiKey();
 
-          if (!apiKey || apiKey.trim() === "") {
+          if (!apiKey) {
             vscode.window.showErrorMessage(
-              "GemCommit: Please configure your Google Gemini API key in settings."
+              "GemCommit: Google Gemini API key not found. Please add “GEMINI_API_KEY=YOUR_API_KEY” to your “~/.env file”."
             );
             return;
           }
@@ -279,7 +298,7 @@ async function generateCommitMessage(
   ${stagedDiff}`;
 
   const contents: Content[] = [{ role: "user", parts: [{ text: prompt }] }];
-  const modelName = config.get<string>("model") ?? "gemini-2.0-flash";
+  const modelName = config.get<string>("model") ?? "gemini-2.5-flash";
 
   try {
     const model = genAI.getGenerativeModel({ model: modelName });
@@ -330,7 +349,7 @@ async function generateDetailedCommit(
   ${stagedDiff}`;
 
   const contents: Content[] = [{ role: "user", parts: [{ text: prompt }] }];
-  const modelName = config.get<string>("model") ?? "gemini-2.0-flash";
+  const modelName = config.get<string>("model") ?? "gemini-2.5-flash";
 
   try {
     const model = genAI.getGenerativeModel({ model: modelName });
