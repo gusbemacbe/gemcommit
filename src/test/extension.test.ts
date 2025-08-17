@@ -1,11 +1,14 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-const fs = require("fs");
-
 import * as os from "os";
 import * as path from "path";
 import * as sinon from "sinon";
+import proxyquire from "proxyquire";
+
 import { activate, generateCommitMessage, generateDetailedCommit, getApiKey, getProjectContext, saveToCommitHistory } from "../extension";
+
+const fs = require("fs");
+const l10n = require("@vscode/l10n");
 
 suite("GemCommit Extension Test Suite", () => {
   vscode.window.showInformationMessage("Starting all tests.");
@@ -120,16 +123,28 @@ suite("GemCommit Extension Test Suite", () => {
 
   suite("Extension Activation", () => {
     test("Should register all commands and set context on activation", () => {
-      // Creating a spy on `registerCommand` to track its calls
+      // 1. Creating a fake `@vscode/l10n` library to inject.
+      const l10nMock = {
+        config: sinon.fake(),
+        t: (s: string) => { return s; },
+        '@global': true
+      };
+
+      // 2. Loading the extension module using `proxyquire` with the CORRECT module name.
+      const { activate } = proxyquire('../extension', {
+        '@vscode/l10n': l10nMock
+      });
+
+      // 3. Setting up spies and stubs for VS Code APIs.
       const registerCommandSpy = sandbox.spy(vscode.commands, "registerCommand");
       const executeCommandStub = sandbox.stub(vscode.commands, "executeCommand");
 
-      // Creating a mock `Memento` that satisfies the base interface
+      // 4. Building the complete and type-safe mock `ExtensionContext`.
       const createMockMemento = (): vscode.Memento => {
         const store: { [key: string]: any } = {};
         return {
-          keys: () => Object.keys(store),
-          get: <T>(key: string, defaultValue?: T): T | undefined => store[key] || defaultValue,
+          keys: () => { return Object.keys(store); },
+          get: <T>(key: string, defaultValue?: T): T | undefined => { return store[key] || defaultValue; },
           update: (key: string, value: any): Promise<void> => {
             store[key] = value;
             return Promise.resolve();
@@ -137,37 +152,30 @@ suite("GemCommit Extension Test Suite", () => {
         };
       };
 
-      // Creating a specific mock for `globalState` that includes `setKeysForSync`
       const mockGlobalState = {
         ...createMockMemento(),
-        setKeysForSync: (keys: readonly string[]): void => {
-          // This is a no-op for our test purposes
-        },
+        setKeysForSync: (keys: readonly string[]): void => {},
       };
       
-      // Creating a mock `Uri` to satisfy the type checker
       const mockUri = vscode.Uri.parse("file:///mock/path");
 
-      // Creating a mock `ExtensionContext`
       const mockContext: vscode.ExtensionContext = {
         subscriptions: [],
         workspaceState: createMockMemento(),
         globalState: mockGlobalState,
-        extensionPath: "",
-        storagePath: "",
-        logPath: "",
-        globalStoragePath: "",
-        asAbsolutePath: (relativePath: string) => relativePath,
+        extensionPath: "/mock/extension/path",
+        storagePath: "/mock/storage/path",
+        logPath: "/mock/log/path",
+        globalStoragePath: "/mock/globalstorage/path",
+        asAbsolutePath: (relativePath: string) => { return path.join("/mock/extension/path", relativePath); },
         storageUri: mockUri,
         globalStorageUri: mockUri,
         logUri: mockUri,
         extensionUri: mockUri,
-        environmentVariableCollection: undefined as any,
+        environmentVariableCollection: {} as any,
         extensionMode: vscode.ExtensionMode.Test,
-        
-        // Adding the newly required properties with the minimal mock implementations
         secrets: {
-          get: async (key: string) => undefined,
+          get: async (key: string) => { return undefined; },
           store: async (key: string, value: string) => {},
           delete: async (key: string) => {},
           onDidChange: new vscode.EventEmitter<vscode.SecretStorageChangeEvent>().event,
@@ -180,36 +188,26 @@ suite("GemCommit Extension Test Suite", () => {
           packageJSON: {},
           extensionKind: vscode.ExtensionKind.UI,
           exports: {},
-          activate: () => Promise.resolve({}),
+          activate: () => { return Promise.resolve({}); },
         },
-        languageModelAccessInformation: <any>{ // The cast to any to bypass the strict type checking for testing
-            getProviderInfos: async () => [], // This property is causing the error
+        languageModelAccessInformation: {
+            getProviderInfos: async () => { return []; },
             onDidChange: new vscode.EventEmitter<void>().event,
-        }
+        } as any
       };
 
-      // Activating the extension
+      // 5. Calling the `activate` function that was loaded by `proxyquire`.
       activate(mockContext);
 
-      // Asserting that all commands were registered
+      // 6. Asserting that everything behaved as expected.
+      assert.ok(l10nMock.config.calledOnce, "The mocked l10n.config should have been called");
       assert.strictEqual(registerCommandSpy.callCount, 4, "Should register exactly four commands");
       assert.ok(registerCommandSpy.calledWith("gemcommit.suggestCommitMessage"));
       assert.ok(registerCommandSpy.calledWith("gemcommit.insertCommitMessage"));
       assert.ok(registerCommandSpy.calledWith("gemcommit.detailedCommitMessage"));
       assert.ok(registerCommandSpy.calledWith("gemcommit.showCommitHistory"));
-
-      // Asserting that the context was set for the SCM view
-      assert.ok(
-        executeCommandStub.calledWith("setContext", "scmProvider", "git"),
-        "Should set the SCM provider context"
-      );
-
-      // Asserting that the command disposables were pushed to subscriptions
-      assert.strictEqual(
-        mockContext.subscriptions.length,
-        4,
-        "Four disposables should be added to subscriptions"
-      );
+      assert.ok(executeCommandStub.calledWith("setContext", "scmProvider", "git"), "Should set the SCM provider context");
+      assert.strictEqual(mockContext.subscriptions.length, 4, "Four disposables should be added to subscriptions");
     });
   });
 
@@ -531,3 +529,21 @@ suite("GemCommit Extension Test Suite", () => {
     });
   });
 });
+
+// Helper functions for the activation test
+const createMockMemento = (): vscode.Memento => {
+    const store: { [key: string]: any } = {};
+    return {
+        keys: () => Object.keys(store),
+        get: <T>(key: string, defaultValue?: T): T | undefined => store[key] || defaultValue,
+        update: (key: string, value: any): Promise<void> => {
+            store[key] = value;
+            return Promise.resolve();
+        },
+    };
+};
+
+const mockGlobalState = {
+    ...createMockMemento(),
+    setKeysForSync: (keys: readonly string[]): void => {},
+};

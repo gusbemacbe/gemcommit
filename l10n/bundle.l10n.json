@@ -1,0 +1,9 @@
+{
+  "commit.message.generated": "Commit message generated and inserted into Source Control input.",
+  "deprecation.warning.apiKey": "The `gemcommit.apiKey` setting is deprecated. Please move your API key to a `GEMINI_API_KEY` variable in your `~/.env` file for better security.",
+  "error.generating.commit.message": "Error generating commit message: {0}",
+  "generating.commit.message": "Generating commit message...",
+  "git.extension.not.found": "Git extension not found",
+  "no.git.repository": "No Git repository found",
+  "no.staged.changes": "No staged changes found."
+}

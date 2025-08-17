@@ -1,0 +1,9 @@
+{
+  "commit.message.generated": "Message de commit généré et inséré dans le champ du Contrôle de code source.",
+  "deprecation.warning.apiKey": "Le paramètre `gemcommit.apiKey` est obsolète. Veuillez déplacer votre clé d’API vers une variable `GEMINI_API_KEY` dans votre fichier `~/.env` pour plus de sécurité.",
+  "error.generating.commit.message": "Erreur lors de la génération du message de commit: {0}",
+  "generating.commit.message": "Génération du message de commit...",
+  "git.extension.not.found": "Extension de Git non trouvée.",
+  "no.git.repository": "Aucun dépôt de Git trouvé.",
+  "no.staged.changes": "Aucun changement en attente (staged) trouvé."
+}

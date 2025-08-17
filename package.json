@@ -1,8 +1,8 @@
 {
   "name": "gemcommit",
-  "displayName": "GemCommit",
-  "description": "AI-powered Conventional Commit Generator using Google Gemini.",
-  "version": "1.0.8",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "1.0.10",
   "author": "Freilyn Bernabé <freilyn@bernabe.dev>",
   "publisher": "bernabe",
   "repository": {
@@ -28,75 +28,78 @@
     "Other"
   ],
   "main": "./out/extension.js",
+  "l10n": "./l10n",
   "contributes": {
     "commands": [
       {
         "command": "gemcommit.suggestCommitMessage",
-        "title": "GemCommit: Generate Commit Message",
+        "title": "%command.suggestCommitMessage.title%",
         "icon": "$(sparkle)"
       },
       {
         "command": "gemcommit.detailedCommitMessage",
-        "title": "GemCommit: Generate Detailed Commit Message",
+        "title": "%command.detailedCommitMessage.title%",
         "icon": "$(pencil)"
       },
       {
         "command": "gemcommit.showCommitHistory",
-        "title": "GemCommit: Show Commit History",
+        "title": "%command.showCommitHistory.title%",
         "icon": "$(history)"
       }
     ],
     "configuration": {
-      "title": "GemCommit Settings",
+      "title": "%config.title%",
       "properties": {
         "gemcommit.apiKey": {
           "type": "string",
           "default": "",
-          "description": "API key for Google Gemini AI.",
+          "description": "%config.apiKey.description%",
           "deprecationMessage": "Storing the API key in settings is deprecated. Please use the GEMINI_API_KEY environment variable in your `~/.env` file instead for better security."
         },
         "gemcommit.model": {
           "type": "string",
           "default": "gemini-2.5-flash",
-          "description": "The AI model to use for generating commit messages. Example: gemini-2.5-flash"
+          "description": "%config.model.description%"
         },
         "gemcommit.customPrompt": {
           "type": "string",
           "default": "",
-          "description": "Custom prompt template for generating commit messages. Leave empty to use the default prompt."
+          "description": "%config.customPrompt.description%"
         },
         "gemcommit.promptBeforeInsert": {
           "type": "boolean",
           "default": false,
-          "description": "Show an input dialog to review and edit the generated commit message before inserting it"
+          "description": "%config.promptBeforeInsert.description%"
         },
         "gemcommit.maxHistorySize": {
           "type": "number",
           "default": 20,
-          "description": "Maximum number of commit messages to store in history"
+          "description": "%config.maxHistorySize.description%"
         },
         "gemcommit.includeProjectContext": {
           "type": "boolean",
           "default": true,
-          "description": "Include project context (package.json, recent commits) when generating commit messages"
+          "description": "%config.includeProjectContext.description%"
         },
         "gemcommit.commitLanguage": {
           "type": "string",
-          "description": "The language for the generated commit messages.",
+          "description": "%config.commitLanguage.description%",
           "default": "english",
           "enum": [
             "english",
             "spanish",
             "french",
             "german",
+            "italian",
             "portuguese"
           ],
           "enumDescriptions": [
-            "English (Default)",
-            "Spanish (Español)",
-            "French (Français)",
-            "German (Deutsch)",
-            "Portuguese (Português)"
+            "%config.commitLanguage.enum.english%",
+            "%config.commitLanguage.enum.spanish%",
+            "%config.commitLanguage.enum.french%",
+            "%config.commitLanguage.enum.german%",
+            "%config.commitLanguage.enum.italian%",
+            "%config.commitLanguage.enum.portuguese%"
           ]
         }
       }
@@ -143,19 +146,23 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/proxyquire": "^1.3.31",
     "@types/sinon": "^17.0.4",
     "@types/vscode": "^1.60.0",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
     "@typescript-eslint/parser": "^8.22.0",
+    "@vscode/l10n-dev": "^0.0.18",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
     "eslint": "^9.19.0",
+    "proxyquire": "^2.1.3",
     "sinon": "^17.0.1",
     "typescript": "^5.7.3"
   },
   "packageManager": "pnpm@10.4.1",
   "dependencies": {
     "@google/generative-ai": "^0.22.0",
+    "@vscode/l10n": "^0.0.10",
     "dotenv": "^16.3.1"
   }
 }

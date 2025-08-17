@@ -1,0 +1,21 @@
+{
+  "displayName": "GemCommit",
+  "description": "Gerador de *Commits Convencionais* com s IA usando o Google Gemini.",
+  "command.suggestCommitMessage.title": "GemCommit: Gerar a Mensagem de Commit",
+  "command.detailedCommitMessage.title": "GemCommit: Gerar a Mensagem de Commit Detalhada",
+  "command.showCommitHistory.title": "GemCommit: Mostrar o Histórico de Commits",
+  "config.title": "Configurações do GemCommit",
+  "config.apiKey.description": "[Obsoleto] Chave de API para o Google Gemini AI. Por favor, use a variável de ambiente `GEMINI_API_KEY` no seu arquivo `~/.env` para a maior segurança.",
+  "config.model.description": "O modelo de IA a ser usado para gerar as mensagens de commit. Exemplo: gemini-2.0-flash",
+  "config.customPrompt.description": "Modelo de prompt personalizado para gerar as mensagens de commit. Deixe em branco para usar o padrão.",
+  "config.promptBeforeInsert.description": "Mostrar uma caixa de diálogo para revisar e editar a mensagem de commit gerada antes de inseri-la.",
+  "config.maxHistorySize.description": "Número máximo de mensagens de commit a serem armazenadas no histórico.",
+  "config.includeProjectContext.description": "Incluir o contexto do projeto (`package.json`, commits recentes) ao gerar as mensagens de commit.",
+  "config.commitLanguage.description": "O idioma para as mensagens de commit geradas.",
+  "config.commitLanguage.enum.english": "Inglês (Padrão)",
+  "config.commitLanguage.enum.french": "Francês (Français)",
+  "config.commitLanguage.enum.german": "Alemão (Deutsch)",
+  "config.commitLanguage.enum.italian": "Italiano (Italiano)",
+  "config.commitLanguage.enum.portuguese": "Português (Português)",
+  "config.commitLanguage.enum.spanish": "Espanhol (Español)"
+}
