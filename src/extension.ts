@@ -1,10 +1,10 @@
 import { Content, GoogleGenerativeAI } from "@google/generative-ai";
-import * as fs from "fs";
-import * as path from "path";
-import * as vscode from "vscode";
 import * as l10n from "@vscode/l10n";
 import * as dotenv from "dotenv";
+import * as fs from "fs";
 import * as os from "os";
+import * as path from "path";
+import * as vscode from "vscode";
 
 // Interface for storing configurations
 interface CommitConfiguration {
@@ -51,9 +51,6 @@ export function getApiKey(): string | null {
  * @param context - The VS Code extension context
  */
 export function activate(context: vscode.ExtensionContext): void {
-  l10n.config({
-    fsPath: path.join(context.extensionPath, 'l10n') // This points to a DIRECTORY
-  });
 
   // Register the main command
   let disposable = vscode.commands.registerCommand(
