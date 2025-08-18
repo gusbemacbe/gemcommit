@@ -4,3 +4,5 @@ compare-*
 dist
 node_modules
 out
+
+bun.lock

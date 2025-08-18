@@ -2,7 +2,7 @@
   "name": "gemcommit",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "author": "Freilyn Bernabé <freilyn@bernabe.dev>",
   "publisher": "bernabe",
   "repository": {

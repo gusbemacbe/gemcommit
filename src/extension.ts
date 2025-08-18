@@ -20,6 +20,9 @@ interface CommitConfiguration {
  * @returns The API key, or null if not found.
  */
 export function getApiKey(): string | null {
+  if (process.env.GEMINI_API_KEY?.trim()) {
+    return process.env.GEMINI_API_KEY.trim();
+  }
   // 1. Checking the environment file first
   const envPath = path.join(os.homedir(), ".env");
   if (fs.existsSync(envPath)) {
