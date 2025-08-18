@@ -329,15 +329,27 @@ async function readCustomPromptFile(isDetailed: boolean): Promise<string | null>
     const config = vscode.workspace.getConfiguration("gemcommit");
     const settingKey = isDetailed ? "customDetailedPromptFile" : "customPromptFile";
     const defaultFileName = isDetailed ? ".gemcommit_detailed.md" : ".gemcommit.md";
-    const fileName = config.get<string>(settingKey) || defaultFileName;
+    let fileName = config.get<string>(settingKey) || defaultFileName;
 
-    const rootUri = vscode.workspace.workspaceFolders?.[0]?.uri;
-    if (!rootUri) {
-        return null;
+    // **NEW: Handle tilde expansion**
+    if (fileName.startsWith('~/')) {
+        fileName = path.join(homedir(), fileName.substring(2));
     }
 
-    const promptFileUri = vscode.Uri.joinPath(rootUri, fileName);
+    let promptFileUri: vscode.Uri;
+    const rootUri = vscode.workspace.workspaceFolders?.[0]?.uri;
 
+    // If the path is absolute, create a Uri for it directly.
+    // Otherwise, join it with the workspace root.
+    if (path.isAbsolute(fileName)) {
+        promptFileUri = vscode.Uri.file(fileName);
+    } else if (rootUri) {
+        promptFileUri = vscode.Uri.joinPath(rootUri, fileName);
+    } else {
+        // Cannot resolve relative path without a workspace root.
+        return null;
+    }
+    
     try {
         const rawContent = await vscode.workspace.fs.readFile(promptFileUri);
         return new TextDecoder().decode(rawContent);
