@@ -2,6 +2,7 @@ import { Content, GoogleGenerativeAI } from "@google/generative-ai";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
+import * as l10n from "@vscode/l10n";
 import * as dotenv from "dotenv";
 import * as os from "os";
 
@@ -34,7 +35,7 @@ export function getApiKey(): string | null {
 
   if (apiKeyFromSettings && apiKeyFromSettings.trim() !== "") {
     vscode.window.showWarningMessage(
-      "The 'gemcommit.apiKey' setting is deprecated. Please move your API key to a “GEMINI_API_KEY” variable in your “~/.env” file for better security."
+      l10n.t("deprecation.warning.apiKey")
     );
     return apiKeyFromSettings;
   }
@@ -47,6 +48,10 @@ export function getApiKey(): string | null {
  * @param context - The VS Code extension context
  */
 export function activate(context: vscode.ExtensionContext): void {
+  l10n.config({
+    fsPath: path.join(context.extensionPath, 'l10n') // This points to a DIRECTORY
+  });
+
   // Register the main command
   let disposable = vscode.commands.registerCommand(
     "gemcommit.suggestCommitMessage",
@@ -55,9 +60,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const apiKey = getApiKey();
 
         if (!apiKey) {
-          vscode.window.showErrorMessage(
-            "GemCommit: Google Gemini API key not found. Please add 'GEMINI_API_KEY=YOUR_API_KEY' to your ~/.env file."
-          );
+          vscode.window.showErrorMessage(l10n.t("deprecation.warning.apiKey"));
           return;
         }
 
@@ -66,7 +69,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const gitExtension =
           vscode.extensions.getExtension("vscode.git")?.exports;
         if (!gitExtension) {
-          vscode.window.showErrorMessage("Git extension not found");
+          vscode.window.showErrorMessage(l10n.t("git.extension.not.found"));
           return;
         }
 
@@ -74,22 +77,22 @@ export function activate(context: vscode.ExtensionContext): void {
         const repository = gitAPI.repositories[0];
 
         if (!repository) {
-          vscode.window.showErrorMessage("No Git repository found");
+          vscode.window.showErrorMessage(l10n.t("no.git.repository"));
           return;
         }
 
-        // Show progress indicator
+        // Showing the progress indicator
         await vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
-            title: "Generating commit message...",
+            title: l10n.t("generating.commit.message"),
             cancellable: false,
           },
           async () => {
             const stagedDiff = await repository.diff(true);
 
             if (!stagedDiff.trim()) {
-              vscode.window.showInformationMessage("No staged changes found.");
+              vscode.window.showInformationMessage(l10n.t("no.staged.changes"));
               return;
             }
 
@@ -124,13 +127,13 @@ export function activate(context: vscode.ExtensionContext): void {
             saveToCommitHistory(commitMessage, context);
 
             vscode.window.showInformationMessage(
-              "Commit message generated and inserted into Source Control input."
+              l10n.t("commit.message.generated")
             );
           }
         );
       } catch (error: any) {
         vscode.window.showErrorMessage(
-          `Error generating commit message: ${error.message}`
+          l10n.t("error.generating.commit.message", error.message)
         );
       }
     }
@@ -155,9 +158,7 @@ export function activate(context: vscode.ExtensionContext): void {
           const apiKey = getApiKey();
 
           if (!apiKey) {
-            vscode.window.showErrorMessage(
-              "GemCommit: Google Gemini API key not found. Please add “GEMINI_API_KEY=YOUR_API_KEY” to your “~/.env file”."
-            );
+            vscode.window.showErrorMessage(l10n.t("deprecation.warning.apiKey"));
             return;
           }
 
@@ -166,7 +167,7 @@ export function activate(context: vscode.ExtensionContext): void {
           const gitExtension =
             vscode.extensions.getExtension("vscode.git")?.exports;
           if (!gitExtension) {
-            vscode.window.showErrorMessage("Git extension not found");
+            vscode.window.showErrorMessage(l10n.t("git.extension.not.found"));
             return;
           }
 
@@ -174,14 +175,14 @@ export function activate(context: vscode.ExtensionContext): void {
           const repository = gitAPI.repositories[0];
 
           if (!repository) {
-            vscode.window.showErrorMessage("No Git repository found");
+            vscode.window.showErrorMessage(l10n.t("no.git.repository"));
             return;
           }
 
           const stagedDiff = await repository.diff(true);
 
           if (!stagedDiff.trim()) {
-            vscode.window.showInformationMessage("No staged changes found.");
+            vscode.window.showInformationMessage(l10n.t("no.staged.changes"));
             return;
           }
 
@@ -199,7 +200,7 @@ export function activate(context: vscode.ExtensionContext): void {
         } catch (error: any) {
           console.error("Error generating detailed commit message:", error);
           vscode.window.showErrorMessage(
-            `Error generating detailed commit message: ${error.message}`
+            l10n.t("error.generating.commit.message", error.message)
           );
         }
       }
