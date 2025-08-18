@@ -8,6 +8,8 @@
   "config.apiKey.description": "[Obsoleto] Chave de API para o Google Gemini AI. Por favor, use a variável de ambiente `GEMINI_API_KEY` no seu arquivo `~/.env` para a maior segurança.",
   "config.model.description": "O modelo de IA a ser usado para gerar as mensagens de commit. Exemplo: gemini-2.0-flash",
   "config.customPrompt.description": "Modelo de prompt personalizado para gerar as mensagens de commit. Deixe em branco para usar o padrão.",
+  "config.customPromptFile.description": "O caminho para um arquivo de Markdown para o prompt de mensagem de commit simples. Se esse arquivo existir, ele substitui a configuração `customPrompt`.",
+  "config.customDetailedPromptFile.description": "O caminho para um arquivo de Markdown para o prompt de mensagem de commit detalhado. Se esse arquivo existir, ele substitui o prompt de mensagem de commit detalhado padrão.",
   "config.promptBeforeInsert.description": "Mostrar uma caixa de diálogo para revisar e editar a mensagem de commit gerada antes de inseri-la.",
   "config.maxHistorySize.description": "Número máximo de mensagens de commit a serem armazenadas no histórico.",
   "config.includeProjectContext.description": "Incluir o contexto do projeto (`package.json`, commits recentes) ao gerar as mensagens de commit.",

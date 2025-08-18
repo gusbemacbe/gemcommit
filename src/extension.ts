@@ -54,18 +54,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // This is a robust way to avoid bundling and file system access issues.
   // It dynamically constructs the path to the correct language bundle.
   try {
-    const userLanguage = vscode.env.language; // No normalization needed
+    const userLanguage = vscode.env.language;
     let bundleUri = vscode.Uri.joinPath(context.extensionUri, 'l10n', `bundle.l10n.${userLanguage}.json`);
     
+    // Check if the language-specific bundle exists
     try {
       await vscode.workspace.fs.stat(bundleUri);
     } catch (error) {
+      // If it doesn't exist, fall back to the default English bundle
       bundleUri = vscode.Uri.joinPath(context.extensionUri, 'l10n', 'bundle.l10n.json');
     }
 
     const bundleContent = await vscode.workspace.fs.readFile(bundleUri);
     l10n.config({ contents: JSON.parse(new TextDecoder().decode(bundleContent)) });
   } catch (error) {
+    // If any bundle fails to load, log it and continue without translations.
     console.error("Failed to load l10n bundle", error);
   }
 
@@ -105,12 +108,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             // Add additional project context
             const projectContext = await getProjectContext();
             const config = vscode.workspace.getConfiguration("gemcommit");
-            // Generate message with more context
-            const commitMessage = await generateCommitMessage(
-              genAI,
-              stagedDiff,
-              projectContext
-            );
+            
+            const customPromptFromFile = await readCustomPromptFile(false); // Not detailed
+            let commitMessage: string;
+
+            if (customPromptFromFile) {
+                commitMessage = await generateMessageFromCustomFile(
+                    genAI,
+                    stagedDiff,
+                    projectContext,
+                    customPromptFromFile
+                );
+            } else {
+                commitMessage = await generateCommitMessage(
+                    genAI,
+                    stagedDiff,
+                    projectContext
+                );
+            }
 
             // Allow editing before inserting
             const shouldEdit =
@@ -193,11 +208,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
               const genAI = new GoogleGenerativeAI(apiKey);
               const projectContext = await getProjectContext();
-              const commitConfig = await generateDetailedCommit(
-                genAI,
-                stagedDiff,
-                projectContext
-              );
+              
+              const customPromptFromFile = await readCustomPromptFile(true); // Is detailed
+              let commitConfig: CommitConfiguration;
+
+              if (customPromptFromFile) {
+                  commitConfig = await generateDetailedMessageFromCustomFile(
+                      genAI,
+                      stagedDiff,
+                      projectContext,
+                      customPromptFromFile
+                  );
+              } else {
+                  commitConfig = await generateDetailedCommit(
+                      genAI,
+                      stagedDiff,
+                      projectContext
+                  );
+              }
 
               const commitMessage = await showCommitEditor(commitConfig);
               if (commitMessage) {
@@ -290,6 +318,143 @@ export async function getProjectContext(): Promise<string> {
     console.error("Error getting project context:", error);
     return "";
   }
+}
+
+/**
+ * Reads the custom prompt file from the workspace root.
+ * @param isDetailed - Determines whether to read the detailed or simple prompt file.
+ * @returns The content of the file, or null if it doesn't exist.
+ */
+async function readCustomPromptFile(isDetailed: boolean): Promise<string | null> {
+    const config = vscode.workspace.getConfiguration("gemcommit");
+    const settingKey = isDetailed ? "customDetailedPromptFile" : "customPromptFile";
+    const defaultFileName = isDetailed ? ".gemcommit_detailed.md" : ".gemcommit.md";
+    const fileName = config.get<string>(settingKey) || defaultFileName;
+
+    const rootUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+    if (!rootUri) {
+        return null;
+    }
+
+    const promptFileUri = vscode.Uri.joinPath(rootUri, fileName);
+
+    try {
+        const rawContent = await vscode.workspace.fs.readFile(promptFileUri);
+        return new TextDecoder().decode(rawContent);
+    } catch (error) {
+        // File not found, which is a normal case.
+        return null;
+    }
+}
+
+/**
+ * Generates a commit message using a prompt from a custom Markdown file.
+ */
+async function generateMessageFromCustomFile(
+  genAI: GoogleGenerativeAI,
+  stagedDiff: string,
+  projectContext: string,
+  customPromptFromFile: string
+): Promise<string> {
+    const config = vscode.workspace.getConfiguration("gemcommit");
+
+    // Replicating the logic to append context and diff
+    const prompt = `${customPromptFromFile}
+  
+    ${projectContext ? `\n\nProject context:\n${projectContext}` : ""}
+    
+    Here is the git diff:
+    
+    ${stagedDiff}`;
+
+    const contents: Content[] = [{ role: "user", parts: [{ text: prompt }] }];
+    const modelName = config.get<string>("model") ?? "gemini-2.5-flash";
+
+    try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const { response } = await model.generateContent({ contents });
+        return response.text();
+    } catch (error) {
+        console.error("Gemini AI Error:", error);
+        throw error;
+    }
+}
+
+/**
+ * Generates a detailed commit message using a prompt from a custom Markdown file.
+ */
+async function generateDetailedMessageFromCustomFile(
+  genAI: GoogleGenerativeAI,
+  stagedDiff: string,
+  projectContext: string,
+  customPromptFromFile: string
+): Promise<CommitConfiguration> {
+    const config = vscode.workspace.getConfiguration("gemcommit");
+    const language = config.get<string>("commitLanguage") ?? "english";
+    const languageInstruction = `The 'description' and 'body' fields in the JSON output MUST be written in ${language}.`;
+
+    const prompt = `${customPromptFromFile}
+    
+    ${languageInstruction}
+  
+    Return the result in JSON format with the following properties:
+    {
+      "type": "feat|fix|refactor|docs|style|test|...",
+      "scope": "optional scope",
+      "description": "short description",
+      "body": "detailed explanation",
+      "breakingChanges": boolean
+    }
+    
+    IMPORTANT: Return ONLY the raw JSON without any Markdown formatting, code blocks, backticks, or explanation text. The response should start with '{' and end with '}'.
+    
+    ${projectContext ? `\n\nProject context:\n${projectContext}` : ""}
+    
+    Here is the git diff:
+    
+    ${stagedDiff}`;
+
+    const contents: Content[] = [{ role: "user", parts: [{ text: prompt }] }];
+    const modelName = config.get<string>("model") ?? "gemini-2.5-flash";
+
+    try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const { response } = await model.generateContent({ contents });
+        const responseText = response.text();
+
+        let jsonText = responseText;
+
+        if (responseText.includes("```")) {
+            const match = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (match && match[1]) {
+                jsonText = match[1].trim();
+            }
+        }
+
+        const startIndex = jsonText.indexOf("{");
+        const endIndex = jsonText.lastIndexOf("}") + 1;
+
+        if (startIndex !== -1 && endIndex > startIndex) {
+            jsonText = jsonText.substring(startIndex, endIndex);
+        }
+
+        try {
+            return JSON.parse(jsonText) as CommitConfiguration;
+        } catch (parseError) {
+            console.error("JSON parse error:", parseError);
+            console.error("Attempted to parse:", jsonText);
+
+            return {
+                type: l10n.t("fallback.type"),
+                description: l10n.t("fallback.description"),
+                body: l10n.t("fallback.body", stagedDiff.split("\n").filter(line => line.startsWith("diff --git")).join(", ")),
+                breakingChanges: false,
+            };
+        }
+    } catch (error) {
+        console.error("Gemini AI Error:", error);
+        throw error;
+    }
 }
 
 /**
