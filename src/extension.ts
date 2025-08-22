@@ -50,7 +50,24 @@ export function getApiKey(): string | null {
  * Activates the extension
  * @param context - The VS Code extension context
  */
-export function activate(context: vscode.ExtensionContext): void {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  // This is a robust way to avoid bundling and file system access issues.
+  // It dynamically constructs the path to the correct language bundle.
+  try {
+    const userLanguage = vscode.env.language; // No normalization needed
+    let bundleUri = vscode.Uri.joinPath(context.extensionUri, 'l10n', `bundle.l10n.${userLanguage}.json`);
+    
+    try {
+      await vscode.workspace.fs.stat(bundleUri);
+    } catch (error) {
+      bundleUri = vscode.Uri.joinPath(context.extensionUri, 'l10n', 'bundle.l10n.json');
+    }
+
+    const bundleContent = await vscode.workspace.fs.readFile(bundleUri);
+    l10n.config({ contents: JSON.parse(new TextDecoder().decode(bundleContent)) });
+  } catch (error) {
+    console.error("Failed to load l10n bundle", error);
+  }
 
   // Register the main command
   let disposable = vscode.commands.registerCommand(
@@ -111,9 +128,9 @@ export function activate(context: vscode.ExtensionContext): void {
               config.get<boolean>("promptBeforeInsert") ?? false;
             if (shouldEdit) {
               const editedMessage = await vscode.window.showInputBox({
-                prompt: "Review and edit the commit message if needed",
+                prompt: l10n.t("prompt.review.commit.message"),
                 value: commitMessage,
-                placeHolder: "Review generated commit message",
+                placeHolder: l10n.t("placeholder.review.commit.message"),
               });
 
               if (editedMessage) {
@@ -382,14 +399,13 @@ export async function generateDetailedCommit(
 
       // Return a default commit if parsing fails
       return {
-        type: "feat",
-        description: "automated commit message",
+        type: l10n.t("fallback.type"),
+        description: l10n.t("fallback.description"),
         body:
-          "Could not parse AI response, but changes were detected in: " +
-          stagedDiff
+          l10n.t("fallback.body", stagedDiff
             .split("\n")
             .filter((line) => line.startsWith("diff --git"))
-            .join(", "),
+            .join(", ")),
         breakingChanges: false,
       };
     }
@@ -409,13 +425,13 @@ export async function showCommitEditor(
     if (!commitConfig.type || !commitConfig.description) {
       console.error("Invalid commit config received:", commitConfig);
       vscode.window.showErrorMessage(
-        "Error: Received invalid commit data from AI."
+        l10n.t("error.invalid.ai.response")
       );
 
       commitConfig = {
-        type: commitConfig.type || "feat",
+        type: commitConfig.type || l10n.t("fallback.type"),
         scope: commitConfig.scope,
-        description: commitConfig.description || "automated commit message",
+        description: commitConfig.description || l10n.t("fallback.description"),
         body: commitConfig.body || "",
         breakingChanges: !!commitConfig.breakingChanges,
       };
@@ -424,7 +440,7 @@ export async function showCommitEditor(
     // Create a new webview panel
     const panel = vscode.window.createWebviewPanel(
       "gemcommitEditor",
-      "Edit Commit Message",
+      l10n.t("webview.title"),
       vscode.ViewColumn.One,
       { enableScripts: true }
     );
@@ -443,7 +459,7 @@ export async function showCommitEditor(
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Edit Commit Message</title>
+        <title>${l10n.t("webview.title")}</title>
         <style>
           body {
             font-family: var(--vscode-font-family);
@@ -497,29 +513,29 @@ export async function showCommitEditor(
         </style>
       </head>
       <body>
-        <h2>Edit Conventional Commit</h2>
+        <h2>${l10n.t("webview.header")}</h2>
         <form id="commitForm">
           <div class="flex-row">
             <div>
-              <label for="type">Type:</label>
+              <label for="type">${l10n.t("webview.type.label")}</label>
               <input type="text" id="type" value="${escapeHtml(
                 commitConfig.type
               )}" required>
             </div>
             <div>
-              <label for="scope">Scope (optional):</label>
+              <label for="scope">${l10n.t("webview.scope.label")}</label>
               <input type="text" id="scope" value="${escapeHtml(
                 commitConfig.scope || ""
               )}">
             </div>
           </div>
       
-          <label for="description">Description:</label>
+          <label for="description">${l10n.t("webview.description.label")}</label>
           <input type="text" id="description" value="${escapeHtml(
             commitConfig.description
           )}" required>
       
-          <label for="body">Body:</label>
+          <label for="body">${l10n.t("webview.body.label")}</label>
           <textarea id="body" rows="5">${escapeHtml(
             commitConfig.body || ""
           )}</textarea>
@@ -528,15 +544,15 @@ export async function showCommitEditor(
             <input type="checkbox" id="breaking" ${
               commitConfig.breakingChanges ? "checked" : ""
             } style="width: 20px;margin-bottom: 0;">
-            <label for="breaking" style="display: inline;margin-bottom: 0;">Breaking Changes</label>
+            <label for="breaking" style="display: inline;margin-bottom: 0;">${l10n.t("webview.breaking.label")}</label>
           </div>
       
-          <h3>Preview:</h3>
+          <h3>${l10n.t("webview.preview.header")}</h3>
           <pre id="preview"></pre>
       
           <div>
-            <button type="submit">Apply</button>
-            <button type="button" id="cancelBtn">Cancel</button>
+            <button type="submit">${l10n.t("webview.apply.button")}</button>
+            <button type="button" id="cancelBtn">${l10n.t("webview.cancel.button")}</button>
           </div>
         </form>
       
@@ -611,9 +627,7 @@ export async function showCommitEditor(
   } catch (error) {
     console.error("Error displaying commit editor:", error);
     vscode.window.showErrorMessage(
-      `Error displaying commit editor: ${
-        error instanceof Error ? error.message : String(error)
-      }`
+      l10n.t("error.displaying.commit.editor", error instanceof Error ? error.message : String(error))
     );
     return undefined;
   }
@@ -647,12 +661,12 @@ export async function showCommitHistory(
   const history = context.globalState.get<string[]>("commitHistory", []);
 
   if (history.length === 0) {
-    vscode.window.showInformationMessage("No commit history available yet.");
+    vscode.window.showInformationMessage(l10n.t("info.no.commit.history"));
     return;
   }
 
   const selectedCommit = await vscode.window.showQuickPick(history, {
-    placeHolder: "Select a commit message to reuse",
+    placeHolder: l10n.t("placeholder.reuse.commit.message"),
   });
 
   if (selectedCommit) {
@@ -663,7 +677,7 @@ export async function showCommitHistory(
       if (repository) {
         repository.inputBox.value = selectedCommit;
         vscode.window.showInformationMessage(
-          "Commit message inserted from history."
+          l10n.t("info.commit.message.reused")
         );
       }
     }
