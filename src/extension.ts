@@ -196,24 +196,35 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             return;
           }
 
-          const stagedDiff = await repository.diff(true);
+          await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Notification,
+              title: l10n.t("generating.detailed.commit.message"),
+              cancellable: false,
+            },
+            async () => {
+              const stagedDiff = await repository.diff(true);
 
-          if (!stagedDiff.trim()) {
-            vscode.window.showInformationMessage(l10n.t("no.staged.changes"));
-            return;
-          }
+              if (!stagedDiff.trim()) {
+                vscode.window.showInformationMessage(
+                  l10n.t("no.staged.changes")
+                );
+                return;
+              }
 
-          const projectContext = await getProjectContext();
-          const commitConfig = await generateDetailedCommit(
-            genAI,
-            stagedDiff,
-            projectContext
+              const projectContext = await getProjectContext();
+              const commitConfig = await generateDetailedCommit(
+                genAI,
+                stagedDiff,
+                projectContext
+              );
+
+              const commitMessage = await showCommitEditor(commitConfig);
+              if (commitMessage) {
+                repository.inputBox.value = commitMessage;
+              }
+            }
           );
-
-          const commitMessage = await showCommitEditor(commitConfig);
-          if (commitMessage) {
-            repository.inputBox.value = commitMessage;
-          }
         } catch (error: any) {
           console.error("Error generating detailed commit message:", error);
           vscode.window.showErrorMessage(
