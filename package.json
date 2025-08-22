@@ -165,5 +165,11 @@
     "@google/generative-ai": "^0.24.1",
     "@vscode/l10n": "^0.0.18",
     "dotenv": "^17.2.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@vscode/vsce-sign",
+      "keytar"
+    ]
   }
 }
